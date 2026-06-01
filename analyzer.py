@@ -5,15 +5,18 @@ from collections import Counter, defaultdict
 import re
 
 # Load spaCy model
-nlp = spacy.load("en_core_web_sm")
+try:
+    nlp = spacy.load("en_core_web_sm")
+except:
+    nlp = spacy.blank("en")
+
+
 # ============================================
 # DYNAMIC ENTITY CLASS EXTRACTOR
 # ============================================
 
 class EntityExtractor:
-    """Auto-detects entity classes from text content"""
 
-    # Keyword mappings for dynamic classification
     DOMAIN_KEYWORDS = {
         "Political_Entity": ["president", "minister", "governor", "mayor", "senator",
                              "congress", "parliament", "election", "vote", "party",
@@ -43,35 +46,30 @@ class EntityExtractor:
 
     @staticmethod
     def extract_dynamic_classes(text):
-        """Extract and classify entities based on content keywords"""
         text_lower = text.lower()
         detected_classes = defaultdict(list)
-        words = text_lower.split()
 
         for class_name, keywords in EntityExtractor.DOMAIN_KEYWORDS.items():
             for keyword in keywords:
                 if keyword in text_lower:
                     detected_classes[class_name].append(keyword)
 
-        # Convert to simple dict with counts
         result = {}
         for class_name, found_keywords in detected_classes.items():
             unique_keywords = list(set(found_keywords))
-            if len(unique_keywords) >= 2:  # Min 2 keywords to confirm class
+            if len(unique_keywords) >= 2:
                 result[class_name] = len(unique_keywords)
 
         return result
 
     @staticmethod
     def extract_spacy_entities(text):
-        """Extract standard named entities using spaCy"""
         doc = nlp(text)
         entities = defaultdict(list)
 
         for ent in doc.ents:
             entities[ent.label_].append(ent.text)
 
-        # Remove duplicates
         for key in entities:
             entities[key] = list(set(entities[key]))
 
@@ -83,9 +81,7 @@ class EntityExtractor:
 # ============================================
 
 class SemanticAnalyzer:
-    """8 semantic ambiguity detection functions"""
 
-    # Common ambiguous words with multiple meanings
     AMBIGUOUS_WORDS = {
         "bank": ["financial institution", "river edge"],
         "bat": ["animal", "sports equipment"],
@@ -112,29 +108,21 @@ class SemanticAnalyzer:
         "will": ["future intent", "legal document", "determination"]
     }
 
-    # Ambiguous pronouns
     AMBIGUOUS_PRONOUNS = ["it", "they", "them", "their", "this", "that", "these", "those"]
 
-    # Scope ambiguity patterns
     SCOPE_PATTERNS = [
         r"(old|young|tall|short)\s+(\w+)\s+and\s+(\w+)",
         r"(heavy|lazy|quick)\s+(\w+)\s+and\s+(\w+)",
     ]
 
-    # Quantifier ambiguity words
     QUANTIFIERS = ["every", "each", "all", "some", "many", "few", "several", "any"]
 
-    # Temporal ambiguity words
     TEMPORAL_WORDS = ["yesterday", "today", "tomorrow", "soon", "later",
                       "recently", "eventually", "next week", "last month",
                       "previously", "currently", "eventually", "shortly"]
 
-    # ============================================
-    # FUNCTION 1: LEXICAL AMBIGUITY
-    # ============================================
     @staticmethod
     def lexical_ambiguity(text):
-        """Detect words with multiple possible meanings"""
         words = text.lower().split()
         cleaned_words = [w.strip('.,!?;:()[]{}""\'') for w in words]
         ambiguous_found = []
@@ -148,12 +136,8 @@ class SemanticAnalyzer:
 
         return ambiguous_found
 
-    # ============================================
-    # FUNCTION 2: REFERENTIAL AMBIGUITY
-    # ============================================
     @staticmethod
     def referential_ambiguity(text):
-        """Detect unclear pronoun references"""
         doc = nlp(text)
         sentences = list(doc.sents)
         ambiguous_refs = []
@@ -162,12 +146,8 @@ class SemanticAnalyzer:
             sent_text = sent.text
             for pronoun in SemanticAnalyzer.AMBIGUOUS_PRONOUNS:
                 if pronoun in sent_text.lower().split():
-                    # Check if pronoun could refer to multiple things
-                    context = sent_text.lower()
-                    # Simple check: if pronoun appears without clear antecedent
                     if i > 0:
                         prev_sent = sentences[i-1].text.lower()
-                        # Count potential referents (nouns) in previous sentence
                         prev_doc = nlp(prev_sent)
                         noun_count = len([token for token in prev_doc
                                           if token.pos_ in ["NOUN", "PROPN"]])
@@ -180,13 +160,8 @@ class SemanticAnalyzer:
 
         return ambiguous_refs
 
-    # ============================================
-    # FUNCTION 3: SCOPE AMBIGUITY
-    # ============================================
     @staticmethod
     def scope_ambiguity(text):
-        """Detect scope ambiguity like 'old men and women'"""
-        doc = nlp(text)
         ambiguous_scopes = []
 
         for pattern in SemanticAnalyzer.SCOPE_PATTERNS:
@@ -200,20 +175,14 @@ class SemanticAnalyzer:
 
         return ambiguous_scopes
 
-    # ============================================
-    # FUNCTION 4: ATTACHMENT AMBIGUITY
-    # ============================================
     @staticmethod
     def attachment_ambiguity(text):
-        """Detect prepositional phrase attachment ambiguity"""
         doc = nlp(text)
         attachment_issues = []
 
         for sent in doc.sents:
-            # Find sentences with "with", "in", "on", "by" phrases
             for token in sent:
                 if token.dep_ == "prep" and token.head.pos_ == "NOUN":
-                    # Check if there are two possible attachment points
                     phrase_start = token.i
                     phrase_end = min(phrase_start + 4, len(sent))
                     phrase = sent[phrase_start:phrase_end]
@@ -226,12 +195,8 @@ class SemanticAnalyzer:
 
         return attachment_issues
 
-    # ============================================
-    # FUNCTION 5: QUANTIFIER AMBIGUITY
-    # ============================================
     @staticmethod
     def quantifier_ambiguity(text):
-        """Detect quantifier scope ambiguity"""
         doc = nlp(text)
         quantifier_issues = []
 
@@ -241,8 +206,6 @@ class SemanticAnalyzer:
 
             for q_word in SemanticAnalyzer.QUANTIFIERS:
                 if q_word in words:
-                    # Check if sentence has multiple interpretations
-                    # based on quantifier scope
                     quantifier_issues.append({
                         "quantifier": q_word,
                         "sentence": sent.text.strip()[:120],
@@ -251,12 +214,8 @@ class SemanticAnalyzer:
 
         return quantifier_issues
 
-    # ============================================
-    # FUNCTION 6: TEMPORAL AMBIGUITY
-    # ============================================
     @staticmethod
     def temporal_ambiguity(text):
-        """Detect vague or ambiguous time references"""
         doc = nlp(text)
         temporal_issues = []
 
@@ -272,12 +231,8 @@ class SemanticAnalyzer:
 
         return temporal_issues
 
-    # ============================================
-    # FUNCTION 7: CONTEXTUAL AMBIGUITY
-    # ============================================
     @staticmethod
     def contextual_ambiguity(text):
-        """Detect missing context clues leading to ambiguity"""
         doc = nlp(text)
         context_issues = []
         sentences = list(doc.sents)
@@ -285,7 +240,6 @@ class SemanticAnalyzer:
         for i, sent in enumerate(sentences):
             sent_text = sent.text.strip()
 
-            # Check for demonstratives without clear referent
             demonstratives = ["this", "that", "these", "those"]
             first_word = sent_text.split()[0].lower() if sent_text.split() else ""
 
@@ -295,10 +249,9 @@ class SemanticAnalyzer:
                     "sentence": sent_text[:120]
                 })
 
-            # Check for undefined abbreviations or jargon
             abbreviations = re.findall(r'\b[A-Z]{2,5}\b', sent_text)
             for abbr in abbreviations:
-                if abbr not in ["CEO", "USA", "UK", "AI"]:  # Common known ones
+                if abbr not in ["CEO", "USA", "UK", "AI"]:
                     full_form_found = False
                     for prev_sent in sentences[:i]:
                         if abbr.lower() in prev_sent.text.lower():
@@ -312,17 +265,12 @@ class SemanticAnalyzer:
 
         return context_issues
 
-    # ============================================
-    # FUNCTION 8: ENTITY OVERLAP
-    # ============================================
     @staticmethod
     def entity_overlap(text):
-        """Detect when same entity name could refer to different things"""
         doc = nlp(text)
         entity_occurrences = defaultdict(list)
         overlaps = []
 
-        # Collect all entity occurrences
         for ent in doc.ents:
             if ent.label_ in ["ORG", "GPE", "LOC", "PERSON"]:
                 entity_occurrences[ent.text].append({
@@ -330,7 +278,6 @@ class SemanticAnalyzer:
                     "position": ent.start_char
                 })
 
-        # Check for entities that appear with different labels
         for entity, occurrences in entity_occurrences.items():
             labels = set([occ["label"] for occ in occurrences])
             if len(labels) > 1:
@@ -345,18 +292,13 @@ class SemanticAnalyzer:
                 overlaps.append({
                     "entity": entity,
                     "labels": labels,
-                    "ambiguity": f"'{entity}' could have multiple meanings (brand vs common word)"
+                    "ambiguity": f"'{entity}' could have multiple meanings"
                 })
 
         return overlaps
 
-    # ============================================
-    # FULL ANALYSIS - RUNS ALL 8 FUNCTIONS
-    # ============================================
     @staticmethod
     def full_analysis(text):
-        """Run all 8 ambiguity detection functions"""
-        # Truncate text to ~300 words for analysis
         words = text.split()
         if len(words) > 350:
             text = " ".join(words[:350])
@@ -372,10 +314,7 @@ class SemanticAnalyzer:
             "Entity Overlap": SemanticAnalyzer.entity_overlap(text)
         }
 
-        # Calculate counts
         counts = {key: len(value) for key, value in results.items()}
-
-        # Total score
         total_ambiguities = sum(counts.values())
         word_count = len(text.split())
 
@@ -388,14 +327,10 @@ class SemanticAnalyzer:
         }
 
 
-# ============================================
-# HELPER: GET SEVERITY LABEL
-# ============================================
 def get_severity(count):
-    """Return severity label and color"""
     if count >= 6:
-        return "🔴 HIGH", "#E74C3C"
+        return "HIGH", "#E74C3C"
     elif count >= 3:
-        return "🟡 MEDIUM", "#F39C12"
+        return "MEDIUM", "#F39C12"
     else:
-        return "🟢 LOW", "#27AE60"
+        return "LOW", "#27AE60"

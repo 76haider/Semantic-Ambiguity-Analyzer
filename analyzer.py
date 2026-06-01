@@ -8,8 +8,9 @@ import re
 try:
     nlp = spacy.load("en_core_web_sm")
 except:
-    raise ImportError("Run: python -m spacy download en_core_web_sm")
-
+    import subprocess
+    subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+    nlp = spacy.load("en_core_web_sm")
 
 # ============================================
 # DYNAMIC ENTITY CLASS EXTRACTOR

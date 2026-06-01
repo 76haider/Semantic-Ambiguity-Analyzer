@@ -3,16 +3,9 @@
 import spacy
 from collections import Counter, defaultdict
 import re
-import subprocess
-import sys
 
-# Load spaCy model with auto-download
-try:
-    nlp = spacy.load("en_core_web_sm")
-except:
-    subprocess.run([sys.executable, "-m", "spacy", "download", "en_core_web_sm"])
-    nlp = spacy.load("en_core_web_sm")
-
+# Load spaCy model
+nlp = spacy.load("en_core_web_sm")
 # ============================================
 # DYNAMIC ENTITY CLASS EXTRACTOR
 # ============================================

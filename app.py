@@ -90,14 +90,10 @@ if "analyzer" not in st.session_state:
 # ============================================
 def run_analysis(text, source_name):
     """Run full analysis on text"""
-    # Dynamic entity extraction
     dynamic_entities = EntityExtractor.extract_dynamic_classes(text)
     spacy_entities = EntityExtractor.extract_spacy_entities(text)
-
-    # Semantic ambiguity analysis
     analysis = st.session_state.analyzer.full_analysis(text)
 
-    # Add to history
     st.session_state.history.append({
         "timestamp": datetime.now().strftime("%H:%M:%S"),
         "source": source_name,
@@ -115,7 +111,6 @@ def display_results(analysis, dynamic_entities, spacy_entities):
     """Display analysis results"""
     counts = analysis["counts"]
 
-    # Summary metrics
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric("📝 Words", analysis["word_count"])
@@ -129,13 +124,11 @@ def display_results(analysis, dynamic_entities, spacy_entities):
 
     st.markdown("---")
 
-    # Bar chart
     st.markdown('<p class="sub-header">📊 Ambiguity Distribution</p>', unsafe_allow_html=True)
     fig = create_ambiguity_chart(counts)
     st.pyplot(fig)
     st.markdown("---")
 
-    # Detailed breakdown
     st.markdown('<p class="sub-header">🔍 Detailed Breakdown</p>', unsafe_allow_html=True)
 
     for func_name, items in analysis["results"].items():
@@ -153,26 +146,6 @@ def display_results(analysis, dynamic_entities, spacy_entities):
                             </div>
                         """, unsafe_allow_html=True)
 
-                                elif func_name == "Verb-Object Mismatch":
-                    for item in items[:5]:
-                        st.markdown(f"""
-                            <div class="result-card">
-                                <b>Verb:</b> <code>{item['verb']}</code> → 
-                                <b>Object:</b> <code>{item['object']}</code><br>
-                                <b>Sentence:</b> {item['sentence']}<br>
-                                <b>Issue:</b> {item['reason']}
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                elif func_name == "Semantic Coherence":
-                    for item in items[:5]:
-                        st.markdown(f"""
-                            <div class="result-card">
-                                <b>Sentence:</b> {item['sentence']}<br>
-                                <b>Issue:</b> {item['issue']}
-                            </div>
-                        """, unsafe_allow_html=True)
-                        
                 elif func_name == "Referential Ambiguity":
                     for item in items[:5]:
                         st.markdown(f"""
@@ -241,12 +214,32 @@ def display_results(analysis, dynamic_entities, spacy_entities):
                             </div>
                         """, unsafe_allow_html=True)
 
+                elif func_name == "Verb-Object Mismatch":
+                    for item in items[:5]:
+                        st.markdown(f"""
+                            <div class="result-card">
+                                <b>Verb:</b> <code>{item['verb']}</code> → 
+                                <b>Object:</b> <code>{item['object']}</code><br>
+                                <b>Sentence:</b> {item['sentence']}<br>
+                                <b>Issue:</b> {item['reason']}
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                elif func_name == "Semantic Coherence":
+                    for item in items[:5]:
+                        st.markdown(f"""
+                            <div class="result-card">
+                                <b>Sentence:</b> {item['sentence']}<br>
+                                <b>Issue:</b> {item['issue']}
+                            </div>
+                        """, unsafe_allow_html=True)
+
     # Entity classes
     st.markdown("---")
     st.markdown('<p class="sub-header">🏷️ Detected Entity Classes (Dynamic)</p>', unsafe_allow_html=True)
 
     if dynamic_entities:
-        cols = st.columns(len(dynamic_entities))
+        cols = st.columns(min(len(dynamic_entities), 4))
         for i, (class_name, count) in enumerate(dynamic_entities.items()):
             with cols[i % len(cols)]:
                 st.markdown(f"""
@@ -259,7 +252,6 @@ def display_results(analysis, dynamic_entities, spacy_entities):
     else:
         st.info("No specific entity classes detected. Text may be too short or generic.")
 
-    # spaCy named entities
     if spacy_entities:
         st.markdown('<p class="sub-header">📍 Named Entities (spaCy)</p>', unsafe_allow_html=True)
         for entity_type, entities in spacy_entities.items():
@@ -271,10 +263,9 @@ def display_results(analysis, dynamic_entities, spacy_entities):
 # MAIN APP
 # ============================================
 st.markdown('<h1 class="main-header">📰 Semantic Ambiguity Analyzer</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; color:#666;">NLP Testing Tool for Teachers</p>',
-            unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:#666; font-size:1.1rem;">NLP Project - Semantic Ambiguity Detection</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:#2E86AB; font-size:0.95rem;"><b>Teacher:</b> Sir Muhammad Ali Samo | <b>Course:</b> Natural Language Processing</p>', unsafe_allow_html=True)
 
-# Mode selection
 mode = st.radio(
     "Select Mode:",
     ["📋 Single Analysis", "🔄 Compare Mode"],
@@ -304,7 +295,7 @@ if mode == "📋 Single Analysis":
         source_name = paper_choice
 
         with st.expander("📄 Preview Text"):
-            st.text_area("", text_to_analyze, height=200, disabled=True)
+            st.text_area("Preview", text_to_analyze, height=200, disabled=True, label_visibility="collapsed")
 
     elif input_method == "✏️ Manual Text":
         text_to_analyze = st.text_area(
@@ -324,7 +315,7 @@ if mode == "📋 Single Analysis":
             source_name = f"File: {uploaded_file.name}"
 
             with st.expander("📄 Extracted Text"):
-                st.text_area("", text_to_analyze, height=200, disabled=True)
+                st.text_area("Extracted", text_to_analyze, height=200, disabled=True, label_visibility="collapsed")
 
     if st.button("🔍 Analyze Ambiguity", type="primary", use_container_width=True):
         if text_to_analyze.strip():
@@ -398,7 +389,6 @@ else:
                 analysis_a, dynamic_a, spacy_a = run_analysis(text_a, label_a)
                 analysis_b, dynamic_b, spacy_b = run_analysis(text_b, label_b)
 
-                # Comparison metrics
                 st.markdown("---")
                 st.markdown('<p class="sub-header">📊 Comparison Summary</p>', unsafe_allow_html=True)
 
@@ -413,14 +403,12 @@ else:
                     winner = "Text A" if analysis_a['total'] > analysis_b['total'] else "Text B"
                     st.metric("More Ambiguous", winner)
 
-                # Comparison chart
                 fig = create_comparison_chart(
                     analysis_a["counts"], analysis_b["counts"],
                     label_a[:30], label_b[:30]
                 )
                 st.pyplot(fig)
 
-                # Side-by-side detailed results
                 st.markdown("---")
                 st.markdown('<p class="sub-header">🔍 Side-by-Side Results</p>', unsafe_allow_html=True)
 
@@ -429,7 +417,6 @@ else:
                 with col_a:
                     st.markdown(f"**{label_a[:40]}**")
                     st.markdown(f"Total: {analysis_a['total']} | Words: {analysis_a['word_count']}")
-
                     for func, count in analysis_a["counts"].items():
                         sev, col = get_severity(count)
                         st.markdown(f"{sev} {func}: **{count}**")
@@ -437,7 +424,6 @@ else:
                 with col_b:
                     st.markdown(f"**{label_b[:40]}**")
                     st.markdown(f"Total: {analysis_b['total']} | Words: {analysis_b['word_count']}")
-
                     for func, count in analysis_b["counts"].items():
                         sev, col = get_severity(count)
                         st.markdown(f"{sev} {func}: **{count}**")
@@ -474,9 +460,9 @@ with st.sidebar:
 # ============================================
 # FOOTER
 # ============================================
-st.markdown("---")
 st.markdown(
     '<p style="text-align:center; color:#999; font-size:0.85rem;">'
-    'NLP Project - Semantic Ambiguity Analyzer | Built with Streamlit & spaCy</p>',
+    'NLP Project - Semantic Ambiguity Analyzer | Built with Streamlit & spaCy<br>'
+    '<b>Muhammad Haider (CSC-23S-061)</b> | Taha Shabbir (CSC-23S-062) | Ali Baba (CSC-23S-093)</p>',
     unsafe_allow_html=True
 )

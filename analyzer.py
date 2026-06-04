@@ -448,11 +448,10 @@ class SemanticAnalyzer:
                     })
 
         return issues
-
     # ============================================
     # FUNCTION 10: SEMANTIC COHERENCE (NEW)
     # ============================================
-        @staticmethod
+    @staticmethod
     def semantic_coherence(text):
         """Check overall semantic coherence of sentences using algorithmic approach"""
         doc = nlp(text)
@@ -494,10 +493,11 @@ class SemanticAnalyzer:
                     break
 
         return issues
+
     # ============================================
     # FULL ANALYSIS - RUNS ALL 10 FUNCTIONS
     # ============================================
-    @staticmethod
+        @staticmethod
     def full_analysis(text):
         words = text.split()
         if len(words) > 350:

@@ -497,7 +497,7 @@ class SemanticAnalyzer:
     # ============================================
     # FULL ANALYSIS - RUNS ALL 10 FUNCTIONS
     # ============================================
-        @staticmethod
+    @staticmethod
     def full_analysis(text):
         words = text.split()
         if len(words) > 350:

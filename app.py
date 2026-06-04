@@ -210,7 +210,26 @@ def display_results(analysis, dynamic_entities, spacy_entities):
                                 <b>Sentence:</b> {item['sentence']}
                             </div>
                         """, unsafe_allow_html=True)
+                elif func_name == "Verb-Object Mismatch":
+                    for item in items[:5]:
+                        st.markdown(f"""
+                            <div class="result-card">
+                                <b>Verb:</b> <code>{item['verb']}</code> → 
+                                <b>Object:</b> <code>{item['object']}</code><br>
+                                <b>Sentence:</b> {item['sentence']}<br>
+                                <b>Issue:</b> {item['reason']}
+                            </div>
+                        """, unsafe_allow_html=True)
 
+                elif func_name == "Semantic Coherence":
+                    for item in items[:5]:
+                        st.markdown(f"""
+                            <div class="result-card">
+                                <b>Sentence:</b> {item['sentence']}<br>
+                                <b>Issue:</b> {item['issue']}
+                            </div>
+                        """, unsafe_allow_html=True)
+                        
                 elif func_name == "Entity Overlap":
                     for item in items:
                         st.markdown(f"""

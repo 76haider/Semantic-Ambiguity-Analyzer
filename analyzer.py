@@ -3,6 +3,7 @@
 import spacy
 from collections import Counter, defaultdict
 import re
+import numpy as np
 
 # Load spaCy model
 try:
@@ -20,16 +21,20 @@ class EntityExtractor:
     DOMAIN_KEYWORDS = {
         "Political_Entity": ["president", "minister", "governor", "mayor", "senator",
                              "congress", "parliament", "election", "vote", "party",
-                             "democrat", "republican", "policy", "government", "lawmaker"],
+                             "democrat", "republican", "policy", "government", "lawmaker",
+                             "imran khan", "rally", "political", "politics", "leader"],
         "Sports_Entity": ["player", "team", "coach", "stadium", "match", "tournament",
                           "championship", "league", "trophy", "goal", "score", "referee",
-                          "fan", "club", "captain", "midfielder", "striker"],
+                          "fan", "club", "captain", "midfielder", "striker", "cricket",
+                          "football", "bowler", "batsman", "wicket", "ball", "bat",
+                          "shadab khan", "babar azam", "all rounder", "batting", "bowling"],
         "Business_Entity": ["company", "stock", "market", "profit", "revenue", "share",
                             "investor", "ceo", "bank", "trade", "economy", "startup",
                             "acquisition", "merger", "shareholder", "dividend"],
         "Technology_Entity": ["software", "hardware", "app", "digital", "ai", "cloud",
                               "data", "cyber", "algorithm", "server", "device", "tech",
-                              "silicon", "engineer", "code", "network", "platform"],
+                              "silicon", "engineer", "code", "network", "platform",
+                              "artificial intelligence", "machine learning", "coding"],
         "Healthcare_Entity": ["hospital", "doctor", "patient", "treatment", "drug",
                               "vaccine", "surgery", "therapy", "clinical", "medicine",
                               "diagnosis", "pharma", "nurse", "health", "disease"],
@@ -77,7 +82,7 @@ class EntityExtractor:
 
 
 # ============================================
-# SEMANTIC AMBIGUITY ANALYZER
+# SEMANTIC ANALYZER - 10 FUNCTIONS
 # ============================================
 
 class SemanticAnalyzer:
@@ -109,18 +114,38 @@ class SemanticAnalyzer:
     }
 
     AMBIGUOUS_PRONOUNS = ["it", "they", "them", "their", "this", "that", "these", "those"]
-
     SCOPE_PATTERNS = [
         r"(old|young|tall|short)\s+(\w+)\s+and\s+(\w+)",
         r"(heavy|lazy|quick)\s+(\w+)\s+and\s+(\w+)",
     ]
-
     QUANTIFIERS = ["every", "each", "all", "some", "many", "few", "several", "any"]
-
     TEMPORAL_WORDS = ["yesterday", "today", "tomorrow", "soon", "later",
                       "recently", "eventually", "next week", "last month",
                       "previously", "currently", "eventually", "shortly"]
 
+    # Semantic compatibility patterns - verbs and their expected objects
+    VERB_CATEGORIES = {
+        "consume": ["drink", "eat", "consume", "swallow", "sip", "devour"],
+        "create": ["write", "build", "make", "construct", "paint", "draw"],
+        "move": ["drive", "ride", "fly", "walk", "run", "swim"],
+        "communicate": ["speak", "talk", "say", "tell", "discuss", "announce"],
+    }
+
+    # Nouns that can be consumed
+    CONSUMABLE_CATEGORIES = ["water", "food", "tea", "coffee", "juice", "milk",
+                              "drink", "meal", "bread", "rice", "fruit", "meat"]
+    
+    # Nouns that can be ridden/driven
+    VEHICLE_CATEGORIES = ["car", "bike", "bus", "train", "cycle", "motorcycle",
+                           "horse", "bicycle", "boat", "ship", "plane"]
+
+    # Nouns that can be written/created
+    CREATABLE_CATEGORIES = ["book", "letter", "story", "poem", "essay", "article",
+                             "report", "novel", "code", "program", "software"]
+
+    # ============================================
+    # FUNCTION 1: LEXICAL AMBIGUITY
+    # ============================================
     @staticmethod
     def lexical_ambiguity(text):
         words = text.lower().split()
@@ -136,6 +161,9 @@ class SemanticAnalyzer:
 
         return ambiguous_found
 
+    # ============================================
+    # FUNCTION 2: REFERENTIAL AMBIGUITY
+    # ============================================
     @staticmethod
     def referential_ambiguity(text):
         doc = nlp(text)
@@ -145,13 +173,14 @@ class SemanticAnalyzer:
         for i, sent in enumerate(sentences):
             sent_text = sent.text
             for pronoun in SemanticAnalyzer.AMBIGUOUS_PRONOUNS:
-                if pronoun in sent_text.lower().split():
+                words_in_sent = sent_text.lower().split()
+                if pronoun in words_in_sent:
                     if i > 0:
                         prev_sent = sentences[i-1].text.lower()
                         prev_doc = nlp(prev_sent)
                         noun_count = len([token for token in prev_doc
                                           if token.pos_ in ["NOUN", "PROPN"]])
-                        if noun_count >= 3:
+                        if noun_count >= 2:
                             ambiguous_refs.append({
                                 "pronoun": pronoun,
                                 "sentence": sent_text.strip(),
@@ -160,6 +189,9 @@ class SemanticAnalyzer:
 
         return ambiguous_refs
 
+    # ============================================
+    # FUNCTION 3: SCOPE AMBIGUITY
+    # ============================================
     @staticmethod
     def scope_ambiguity(text):
         ambiguous_scopes = []
@@ -170,11 +202,14 @@ class SemanticAnalyzer:
                 adjective, noun1, noun2 = match
                 ambiguous_scopes.append({
                     "phrase": f"{adjective} {noun1} and {noun2}",
-                    "ambiguity": f"Does '{adjective}' modify only '{noun1}' or both '{noun1} and {noun2}'?"
+                    "ambiguity": f"Does '{adjective}' modify only '{noun1}' or both?"
                 })
 
         return ambiguous_scopes
 
+    # ============================================
+    # FUNCTION 4: ATTACHMENT AMBIGUITY
+    # ============================================
     @staticmethod
     def attachment_ambiguity(text):
         doc = nlp(text)
@@ -186,7 +221,6 @@ class SemanticAnalyzer:
                     phrase_start = token.i
                     phrase_end = min(phrase_start + 4, len(sent))
                     phrase = sent[phrase_start:phrase_end]
-
                     attachment_issues.append({
                         "preposition": token.text,
                         "phrase": " ".join([t.text for t in phrase]),
@@ -195,6 +229,9 @@ class SemanticAnalyzer:
 
         return attachment_issues
 
+    # ============================================
+    # FUNCTION 5: QUANTIFIER AMBIGUITY
+    # ============================================
     @staticmethod
     def quantifier_ambiguity(text):
         doc = nlp(text)
@@ -203,7 +240,6 @@ class SemanticAnalyzer:
         for sent in doc.sents:
             sent_text = sent.text.lower()
             words = sent_text.split()
-
             for q_word in SemanticAnalyzer.QUANTIFIERS:
                 if q_word in words:
                     quantifier_issues.append({
@@ -214,6 +250,9 @@ class SemanticAnalyzer:
 
         return quantifier_issues
 
+    # ============================================
+    # FUNCTION 6: TEMPORAL AMBIGUITY
+    # ============================================
     @staticmethod
     def temporal_ambiguity(text):
         doc = nlp(text)
@@ -231,6 +270,9 @@ class SemanticAnalyzer:
 
         return temporal_issues
 
+    # ============================================
+    # FUNCTION 7: CONTEXTUAL AMBIGUITY
+    # ============================================
     @staticmethod
     def contextual_ambiguity(text):
         doc = nlp(text)
@@ -239,9 +281,12 @@ class SemanticAnalyzer:
 
         for i, sent in enumerate(sentences):
             sent_text = sent.text.strip()
+            words = sent_text.split()
+            if not words:
+                continue
 
             demonstratives = ["this", "that", "these", "those"]
-            first_word = sent_text.split()[0].lower() if sent_text.split() else ""
+            first_word = words[0].lower()
 
             if first_word in demonstratives and i > 0:
                 context_issues.append({
@@ -251,7 +296,7 @@ class SemanticAnalyzer:
 
             abbreviations = re.findall(r'\b[A-Z]{2,5}\b', sent_text)
             for abbr in abbreviations:
-                if abbr not in ["CEO", "USA", "UK", "AI"]:
+                if abbr not in ["CEO", "USA", "UK", "AI", "ICC"]:
                     full_form_found = False
                     for prev_sent in sentences[:i]:
                         if abbr.lower() in prev_sent.text.lower():
@@ -259,12 +304,15 @@ class SemanticAnalyzer:
                             break
                     if not full_form_found and i > 0:
                         context_issues.append({
-                            "issue": f"Abbreviation '{abbr}' not defined in context",
+                            "issue": f"Abbreviation '{abbr}' not defined",
                             "sentence": sent_text[:120]
                         })
 
         return context_issues
 
+    # ============================================
+    # FUNCTION 8: ENTITY OVERLAP
+    # ============================================
     @staticmethod
     def entity_overlap(text):
         doc = nlp(text)
@@ -286,17 +334,186 @@ class SemanticAnalyzer:
                     "labels": list(labels),
                     "ambiguity": f"'{entity}' could be {', '.join(labels)}"
                 })
-            elif len(occurrences) > 1 and entity.lower() in [
-                "apple", "amazon", "delta", "shell", "visa", "orange"
-            ]:
-                overlaps.append({
-                    "entity": entity,
-                    "labels": labels,
-                    "ambiguity": f"'{entity}' could have multiple meanings"
-                })
 
         return overlaps
 
+    # ============================================
+    # FUNCTION 9: VERB-OBJECT COMPATIBILITY (NEW)
+    # ============================================
+    @staticmethod
+    def verb_object_compatibility(text):
+        """Algorithmic detection of verb-object semantic mismatches"""
+        doc = nlp(text)
+        issues = []
+        sentences = list(doc.sents)
+
+        for sent in sentences:
+            verb = None
+            dobj = None
+            subj = None
+
+            # Extract verb, subject, and direct object
+            for token in sent:
+                if token.pos_ == "VERB":
+                    verb = token
+                if token.dep_ == "dobj":
+                    dobj = token
+                if token.dep_ == "nsubj":
+                    subj = token
+
+            # If we have verb and object, check compatibility
+            if verb and dobj:
+                verb_text = verb.lemma_.lower()
+                obj_text = dobj.lemma_.lower()
+
+                # Check semantic similarity using spaCy vectors
+                verb_token = nlp(verb_text)[0] if nlp(verb_text) else None
+                obj_token = nlp(obj_text)[0] if nlp(obj_text) else None
+
+                # Category-based logic check
+                mismatch_found = False
+                mismatch_reason = ""
+
+                # Check consume verbs (drink, eat) + object
+                if verb_text in ["drink", "eat", "consume", "sip", "devour", "swallow"]:
+                    # Check if object is in consumable categories OR has food/drink properties
+                    obj_is_consumable = (
+                        obj_text in SemanticAnalyzer.CONSUMABLE_CATEGORIES or
+                        obj_text in ["water", "milk", "juice", "tea", "coffee", "food"]
+                    )
+                    # Check if object is clearly NOT consumable (animals, objects, abstract)
+                    non_consumable_indicators = ["cricket", "football", "school", "building",
+                                                  "book", "chair", "table", "car", "computer",
+                                                  "phone", "paper", "rock", "stone", "glass",
+                                                  "metal", "wood", "plastic", "brick", "wall"]
+                    if obj_text in non_consumable_indicators or (
+                        dobj.pos_ in ["PROPN", "NOUN"] and not obj_is_consumable and
+                        len(obj_text) > 2
+                    ):
+                        mismatch_found = True
+                        mismatch_reason = f"'{verb_text}' action cannot be performed on '{obj_text}' (not consumable)"
+
+                # Check creation verbs (write, build, make)
+                elif verb_text in ["write", "build", "construct", "paint", "draw"]:
+                    # Objects that can be written/built/created
+                    creatable = obj_text in SemanticAnalyzer.CREATABLE_CATEGORIES
+                    physical_objects = ["building", "house", "bridge", "road", "wall", "tower"]
+                    if verb_text == "write":
+                        # Write requires text-based objects
+                        text_objects = ["book", "letter", "story", "poem", "essay", "article",
+                                        "report", "novel", "note", "message", "email", "code"]
+                        if obj_text not in text_objects and dobj.pos_ == "NOUN":
+                            mismatch_found = True
+                            mismatch_reason = f"'write' requires a text-based object, not '{obj_text}'"
+                    elif verb_text == "build":
+                        if obj_text not in physical_objects and obj_text not in ["software", "app", "website"]:
+                            mismatch_found = True
+                            mismatch_reason = f"'build' requires a physical or digital structure, not '{obj_text}'"
+
+                # Check movement verbs (drive, ride, fly)
+                elif verb_text in ["drive", "ride"]:
+                    vehicle_like = (
+                        obj_text in SemanticAnalyzer.VEHICLE_CATEGORIES or
+                        obj_text in ["car", "bike", "bus", "train", "cycle", "motorcycle",
+                                     "horse", "bicycle", "boat", "ship", "plane", "scooter"]
+                    )
+                    if not vehicle_like and dobj.pos_ == "NOUN" and len(obj_text) > 2:
+                        mismatch_found = True
+                        mismatch_reason = f"'{verb_text}' requires a vehicle or rideable object, not '{obj_text}'"
+
+                # Check subject-verb compatibility (subject can do the verb?)
+                if subj and verb:
+                    subj_text = subj.lemma_.lower()
+                    # Objects/buildings cannot perform human actions
+                    non_animate_subjects = ["building", "wall", "table", "chair", "rock",
+                                             "stone", "book", "car", "computer", "phone",
+                                             "paper", "glass", "metal", "wood", "plastic",
+                                             "brick", "cricket", "football"]
+                    if subj_text in non_animate_subjects:
+                        human_verbs = ["write", "speak", "talk", "say", "tell", "discuss",
+                                       "announce", "think", "believe", "know", "understand",
+                                       "love", "hate", "want", "need", "decide", "choose",
+                                       "sing", "dance", "laugh", "cry", "smile", "run",
+                                       "walk", "jump", "swim", "fly", "eat", "drink", "read"]
+                        if verb_text in human_verbs:
+                            mismatch_found = True
+                            mismatch_reason = f"'{subj_text}' (non-animate) cannot perform human action '{verb_text}'"
+
+                if mismatch_found:
+                    issues.append({
+                        "verb": verb_text,
+                        "object": obj_text,
+                        "sentence": sent.text.strip(),
+                        "reason": mismatch_reason
+                    })
+
+        return issues
+
+    # ============================================
+    # FUNCTION 10: SEMANTIC COHERENCE (NEW)
+    # ============================================
+    @staticmethod
+    def semantic_coherence(text):
+        """Check overall semantic coherence of sentences"""
+        doc = nlp(text)
+        issues = []
+        sentences = list(doc.sents)
+
+        for sent in sentences:
+            words = [token.lemma_.lower() for token in sent
+                     if token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"] and not token.is_stop]
+
+            # Check for contradictory adjective-noun pairs
+            contradictions = {
+                "colorless green": "Color cannot be both colorless and green",
+                "green colorless": "Color cannot be both green and colorless",
+                "liquid rock": "Rock cannot be liquid",
+                "solid liquid": "Cannot be both solid and liquid",
+                "dry water": "Water cannot be dry",
+                "cold fire": "Fire cannot be cold",
+                "dark light": "Cannot be both dark and light",
+                "silent noise": "Noise cannot be silent",
+                "living dead": "Cannot be both living and dead",
+                "square circle": "Cannot be both square and circle",
+            }
+
+            sent_lower = sent.text.lower()
+            for pattern, explanation in contradictions.items():
+                if pattern in sent_lower:
+                    issues.append({
+                        "sentence": sent.text.strip(),
+                        "issue": f"Contradiction: {explanation}",
+                        "pattern": pattern
+                    })
+
+            # Check for sentences with very low semantic similarity between words
+            if len(words) >= 3:
+                # Calculate average similarity between consecutive content words
+                similarities = []
+                for i in range(len(words) - 1):
+                    token1 = nlp(words[i])[0] if nlp(words[i]) else None
+                    token2 = nlp(words[i+1])[0] if nlp(words[i+1]) else None
+                    if token1 and token2 and token1.has_vector and token2.has_vector:
+                        sim = token1.similarity(token2)
+                        similarities.append(sim)
+
+                if similarities:
+                    avg_similarity = sum(similarities) / len(similarities)
+                    # If average similarity is very low, the sentence may be incoherent
+                    if avg_similarity < 0.15 and len(words) >= 3:
+                        # Only flag if the sentence is short (more noticeable)
+                        if len(words) <= 8:
+                            issues.append({
+                                "sentence": sent.text.strip(),
+                                "issue": f"Low semantic coherence (score: {avg_similarity:.2f})",
+                                "pattern": "low_coherence"
+                            })
+
+        return issues
+
+    # ============================================
+    # FULL ANALYSIS - RUNS ALL 10 FUNCTIONS
+    # ============================================
     @staticmethod
     def full_analysis(text):
         words = text.split()
@@ -311,7 +528,9 @@ class SemanticAnalyzer:
             "Quantifier Ambiguity": SemanticAnalyzer.quantifier_ambiguity(text),
             "Temporal Ambiguity": SemanticAnalyzer.temporal_ambiguity(text),
             "Contextual Ambiguity": SemanticAnalyzer.contextual_ambiguity(text),
-            "Entity Overlap": SemanticAnalyzer.entity_overlap(text)
+            "Entity Overlap": SemanticAnalyzer.entity_overlap(text),
+            "Verb-Object Mismatch": SemanticAnalyzer.verb_object_compatibility(text),
+            "Semantic Coherence": SemanticAnalyzer.semantic_coherence(text)
         }
 
         counts = {key: len(value) for key, value in results.items()}

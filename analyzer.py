@@ -452,65 +452,68 @@ class SemanticAnalyzer:
     # ============================================
     # FUNCTION 10: SEMANTIC COHERENCE (NEW)
     # ============================================
-    @staticmethod
+        @staticmethod
     def semantic_coherence(text):
-        """Check overall semantic coherence of sentences"""
+        """Check overall semantic coherence of sentences using algorithmic approach"""
         doc = nlp(text)
         issues = []
         sentences = list(doc.sents)
 
+        # Word pairs that are semantically opposite/contradictory
+        opposite_pairs = [
+            ({"colorless", "colourless"}, {"green", "red", "blue", "yellow", "pink", "purple", "orange", "brown", "black", "white", "gray", "grey"}),
+            ({"dry", "dried"}, {"water", "ocean", "sea", "river", "lake", "rain", "liquid"}),
+            ({"cold", "freezing", "icy"}, {"fire", "flame", "heat", "burning", "hot"}),
+            ({"dark", "black", "pitch"}, {"light", "bright", "shining", "glowing"}),
+            ({"silent", "quiet", "mute"}, {"noise", "sound", "loud", "scream", "shout"}),
+            ({"living", "alive"}, {"dead", "corpse", "deceased"}),
+            ({"square", "rectangular"}, {"circle", "round", "oval", "sphere"}),
+            ({"solid", "hard"}, {"liquid", "gas", "soft"}),
+            ({"hot", "burning"}, {"ice", "frozen", "cold"}),
+            ({"bright", "shining"}, {"darkness", "shadow", "gloom"}),
+            ({"open", "public"}, {"secret", "hidden", "private"}),
+            ({"old", "ancient"}, {"new", "fresh", "modern"}),
+            ({"deafening", "loud"}, {"silence", "quiet"}),
+        ]
+
         for sent in sentences:
-            words = [token.lemma_.lower() for token in sent
-                     if token.pos_ in ["NOUN", "VERB", "ADJ", "ADV"] and not token.is_stop]
+            sent_text = sent.text.strip()
+            sent_lower = sent_text.lower()
+            words = set(sent_lower.split())
 
-            # Check for contradictory adjective-noun pairs
-            contradictions = {
-                "colorless green": "Color cannot be both colorless and green",
-                "green colorless": "Color cannot be both green and colorless",
-                "liquid rock": "Rock cannot be liquid",
-                "solid liquid": "Cannot be both solid and liquid",
-                "dry water": "Water cannot be dry",
-                "cold fire": "Fire cannot be cold",
-                "dark light": "Cannot be both dark and light",
-                "silent noise": "Noise cannot be silent",
-                "living dead": "Cannot be both living and dead",
-                "square circle": "Cannot be both square and circle",
-            }
-
-            sent_lower = sent.text.lower()
-            for pattern, explanation in contradictions.items():
-                if pattern in sent_lower:
+            # Check for contradictory word pairs in the same sentence
+            for set1, set2 in opposite_pairs:
+                found_set1 = words & set1
+                found_set2 = words & set2
+                if found_set1 and found_set2:
+                    word1 = list(found_set1)[0]
+                    word2 = list(found_set2)[0]
                     issues.append({
-                        "sentence": sent.text.strip(),
-                        "issue": f"Contradiction: {explanation}",
-                        "pattern": pattern
+                        "sentence": sent_text,
+                        "issue": f"Contradiction: '{word1}' and '{word2}' cannot logically exist together",
+                        "pattern": f"{word1}_{word2}"
                     })
+                    break  # One contradiction per sentence is enough
 
-            # Check for sentences with very low semantic similarity between words
-            if len(words) >= 3:
-                # Calculate average similarity between consecutive content words
-                similarities = []
-                for i in range(len(words) - 1):
-                    token1 = nlp(words[i])[0] if nlp(words[i]) else None
-                    token2 = nlp(words[i+1])[0] if nlp(words[i+1]) else None
-                    if token1 and token2 and token1.has_vector and token2.has_vector:
-                        sim = token1.similarity(token2)
-                        similarities.append(sim)
-
-                if similarities:
-                    avg_similarity = sum(similarities) / len(similarities)
-                    # If average similarity is very low, the sentence may be incoherent
-                    if avg_similarity < 0.15 and len(words) >= 3:
-                        # Only flag if the sentence is short (more noticeable)
-                        if len(words) <= 8:
-                            issues.append({
-                                "sentence": sent.text.strip(),
-                                "issue": f"Low semantic coherence (score: {avg_similarity:.2f})",
-                                "pattern": "low_coherence"
-                            })
+            # Check adjective-noun pairs using spaCy dependency parsing
+            for token in sent:
+                if token.pos_ == "ADJ":
+                    # Find the noun this adjective modifies
+                    for child in token.children:
+                        if child.pos_ in ["NOUN", "PROPN"]:
+                            adj_noun_pair = f"{token.text.lower()} {child.text.lower()}"
+                            
+                            # Check if this is a known contradictory pair using word sets
+                            for set1, set2 in opposite_pairs:
+                                if token.text.lower() in set1 and child.text.lower() in set2:
+                                    issues.append({
+                                        "sentence": sent_text,
+                                        "issue": f"Contradiction: '{token.text}' cannot describe '{child.text}'",
+                                        "pattern": adj_noun_pair
+                                    })
+                                    break
 
         return issues
-
     # ============================================
     # FULL ANALYSIS - RUNS ALL 10 FUNCTIONS
     # ============================================

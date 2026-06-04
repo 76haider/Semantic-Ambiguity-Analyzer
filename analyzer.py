@@ -459,7 +459,6 @@ class SemanticAnalyzer:
         issues = []
         sentences = list(doc.sents)
 
-        # Word pairs that are semantically opposite/contradictory
         opposite_pairs = [
             ({"colorless", "colourless"}, {"green", "red", "blue", "yellow", "pink", "purple", "orange", "brown", "black", "white", "gray", "grey"}),
             ({"dry", "dried"}, {"water", "ocean", "sea", "river", "lake", "rain", "liquid"}),
@@ -481,7 +480,6 @@ class SemanticAnalyzer:
             sent_lower = sent_text.lower()
             words = set(sent_lower.split())
 
-            # Check for contradictory word pairs in the same sentence
             for set1, set2 in opposite_pairs:
                 found_set1 = words & set1
                 found_set2 = words & set2
@@ -493,25 +491,7 @@ class SemanticAnalyzer:
                         "issue": f"Contradiction: '{word1}' and '{word2}' cannot logically exist together",
                         "pattern": f"{word1}_{word2}"
                     })
-                    break  # One contradiction per sentence is enough
-
-            # Check adjective-noun pairs using spaCy dependency parsing
-            for token in sent:
-                if token.pos_ == "ADJ":
-                    # Find the noun this adjective modifies
-                    for child in token.children:
-                        if child.pos_ in ["NOUN", "PROPN"]:
-                            adj_noun_pair = f"{token.text.lower()} {child.text.lower()}"
-                            
-                            # Check if this is a known contradictory pair using word sets
-                            for set1, set2 in opposite_pairs:
-                                if token.text.lower() in set1 and child.text.lower() in set2:
-                                    issues.append({
-                                        "sentence": sent_text,
-                                        "issue": f"Contradiction: '{token.text}' cannot describe '{child.text}'",
-                                        "pattern": adj_noun_pair
-                                    })
-                                    break
+                    break
 
         return issues
     # ============================================

@@ -303,7 +303,7 @@ with col_info:
         <div class="info-box">
             <h3>📋 Project Info</h3>
             <p><span class="label">Submitted By:</span></p>
-            <p><b>Muhammad Haider (CSC-23S-061)</p>
+            <p><b>Muhammad Haider</b> (CSC-23S-061)</p>
             <p><b>Taha Shabbir</b> (CSC-23S-062)</p>
             <p><b>Ali Baba</b> (CSC-23S-093)</p>
             <hr class="divider">

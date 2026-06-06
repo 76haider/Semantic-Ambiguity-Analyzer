@@ -73,6 +73,36 @@ st.markdown("""
         border-radius: 10px;
         font-size: 0.8rem;
     }
+    .info-box {
+        background: linear-gradient(135deg, #E8F4F8 0%, #F0F8FB 100%);
+        border: 2px solid #2E86AB;
+        border-radius: 16px;
+        padding: 1.3rem 1.5rem;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    .info-box h3 {
+        color: #2C3E50;
+        margin: 0 0 0.8rem 0;
+        font-size: 1.15rem;
+        border-bottom: 2px solid #2E86AB;
+        padding-bottom: 0.5rem;
+    }
+    .info-box p {
+        margin: 0.25rem 0;
+        color: #333;
+        font-size: 0.88rem;
+        line-height: 1.5;
+    }
+    .info-box .label {
+        font-weight: 700;
+        color: #2E86AB;
+    }
+    .info-box .divider {
+        border: none;
+        border-top: 1px solid #B8D8E8;
+        margin: 0.7rem 0;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -260,11 +290,31 @@ def display_results(analysis, dynamic_entities, spacy_entities):
 
 
 # ============================================
-# MAIN APP
+# MAIN APP - HEADER WITH INFO BOX
 # ============================================
-st.markdown('<h1 class="main-header">📰 Semantic Ambiguity Analyzer</h1>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; color:#666; font-size:1.1rem;">NLP Project - Semantic Ambiguity Detection</p>', unsafe_allow_html=True)
-st.markdown('<p style="text-align:center; color:#2E86AB; font-size:0.95rem;"><b>Teacher:</b> Sir Muhammad Ali Samo | <b>Course:</b> Natural Language Processing</p>', unsafe_allow_html=True)
+col_header, col_info = st.columns([2.5, 1])
+
+with col_header:
+    st.markdown('<h1 class="main-header">📰 Semantic Ambiguity Analyzer</h1>', unsafe_allow_html=True)
+    st.markdown('<p style="text-align:center; color:#666; font-size:1.1rem;">NLP Project - Semantic Ambiguity Detection</p>', unsafe_allow_html=True)
+
+with col_info:
+    st.markdown("""
+        <div class="info-box">
+            <h3>📋 Project Info</h3>
+            <p><span class="label">Submitted By:</span></p>
+            <p><b>Muhammad Haider</b> (CSC-23S-061)</p>
+            <p><b>Taha Shabbir</b> (CSC-23S-062)</p>
+            <p><b>Ali Baba</b> (CSC-23S-093)</p>
+            <hr class="divider">
+            <p><span class="label">Class:</span> CS 7B</p>
+            <p><span class="label">Course:</span> Natural Language Processing</p>
+            <p><span class="label">Department:</span> Computer Science</p>
+            <hr class="divider">
+            <p><span class="label">Submitted To:</span></p>
+            <p><b>Sir Muhammad Ali Samo</b></p>
+        </div>
+    """, unsafe_allow_html=True)
 
 mode = st.radio(
     "Select Mode:",
